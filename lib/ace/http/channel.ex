@@ -12,6 +12,8 @@ defmodule Ace.HTTP.Channel do
   - TODO add functions like `cleartext?` `http_version?` `transport_version` that pull information from socket.
   """
 
+  require Logger
+
   @type t :: %__MODULE__{
           endpoint: pid,
           id: integer,
@@ -47,10 +49,8 @@ defmodule Ace.HTTP.Channel do
   def send(channel = %__MODULE__{}, parts) do
     GenServer.call(channel.endpoint, {:send, channel, parts})
   catch
-    # NOTE `GenServer.call` exits if the target process has already exited.
-    # A connection closing will also stop workers (this process).
-    # However this case can still occur due to race conditions.
-    :exit, {:noproc, _} ->
+    :exit, {reason, _details} ->
+      Logger.warn("failed to send tcp data, #{inspect(reason)}")
       {:error, :connection_closed}
   end
 end
